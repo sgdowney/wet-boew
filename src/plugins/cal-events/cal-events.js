@@ -87,8 +87,20 @@ var componentName = "wb-calevt",
 		year = settings.year;
 		month = settings.month;
 
-		minDate = events.minDate;
-		maxDate = events.maxDate;
+		if ( $elm.data( "calevtMinDate" ) ) {
+			minDate = getLocaleDate( $elm.data( "calevtMinDate" ) );
+		}
+		if ( $elm.data( "calevtMaxDate" ) ) {
+			maxDate = getLocaleDate( $elm.data( "calevtMaxDate" ) );
+		}
+
+		if ( !minDate || ( events.minDate < minDate ) ) {
+			minDate = events.minDate;
+		}
+		if ( !maxDate || ( events.maxDate > maxDate ) ) {
+			maxDate = events.maxDate;
+		}
+
 		minDateTime = minDate.getTime();
 		maxDateTime = maxDate.getTime();
 
@@ -344,6 +356,16 @@ var componentName = "wb-calevt",
 					.attr( "tabindex", "-1" );
 			}
 		}, 5 );
+	},
+
+	getLocaleDate = function( dateString ) {
+		var date = new Date(),
+			dateComponents = dateString.split( "-" );
+
+		dateComponents[ 1 ] = dateComponents[ 1 ] - 1;	// Convert to zero-based month
+		date.setFullYear( dateComponents[ 0 ], dateComponents[ 1 ], dateComponents[ 2 ] );
+
+		return date;
 	};
 
 // Bind the init event of the plugin
@@ -354,16 +376,16 @@ $document.on( "timerpoke.wb " + initEvent + " wb-redraw" + selector, selector, f
 		calendarId = event.currentTarget.dataset.calevtSrc;
 
 	switch ( eventType ) {
-	case "timerpoke":
-	case "wb-init":
-		init( event );
-		break;
+		case "timerpoke":
+		case "wb-init":
+			init( event );
+			break;
 
-	case "wb-redraw":
-		$( "#" + calendarId + " .wb-clndr" ).remove();
-		processEvents( $elm );
-		$elm.trigger( "wb-updated" + selector );
-		break;
+		case "wb-redraw":
+			$( "#" + calendarId + " .wb-clndr" ).remove();
+			processEvents( $elm );
+			$elm.trigger( "wb-updated" + selector );
+			break;
 	}
 } );
 
@@ -388,18 +410,18 @@ $document.on( "focusin focusout keydown", selectorEvent + " .cal-evt", function(
 		$link;
 
 	switch ( eventType ) {
-	case "focusin":
-		showEvents.call( event.target );
-		break;
-	case "focusout":
-		hideEvents.call( event.target );
-		break;
-	case "keydown":
-		$link = $( event.target );
-		if ( ( event.which === 13 || event.which === 32 ) && $link.hasClass( "cal-evt" ) ) {
-			$( event.target ).next().find( "a:first" ).trigger( setFocusEvent );
-		}
-		break;
+		case "focusin":
+			showEvents.call( event.target );
+			break;
+		case "focusout":
+			hideEvents.call( event.target );
+			break;
+		case "keydown":
+			$link = $( event.target );
+			if ( ( event.which === 13 || event.which === 32 ) && $link.hasClass( "cal-evt" ) ) {
+				$( event.target ).next().find( "a:first" ).trigger( setFocusEvent );
+			}
+			break;
 	}
 } );
 
@@ -408,24 +430,24 @@ $document.on( "keydown", selectorEvent + " td > ul li", function( event ) {
 		$toFocus, $itemParent;
 
 	switch ( event.which ) {
-	case 38:
-		$toFocus = $item.prev().find( "a" );
-		if ( $toFocus.length === 0 ) {
-			$toFocus = $item.siblings( ":last" ).find( "a" );
-		}
-		$toFocus.trigger( setFocusEvent );
-		break;
-	case 40:
-		$toFocus = $item.next().find( "a" );
-		if ( $toFocus.length === 0 ) {
-			$toFocus = $item.siblings( ":first" ).find( "a" );
-		}
-		$toFocus.trigger( setFocusEvent );
-		break;
-	case 27:
-		$itemParent = $item.closest( "td" ).children( "a" );
-		$itemParent.trigger( setFocusEvent );
-		break;
+		case 38:
+			$toFocus = $item.prev().find( "a" );
+			if ( $toFocus.length === 0 ) {
+				$toFocus = $item.siblings( ":last" ).find( "a" );
+			}
+			$toFocus.trigger( setFocusEvent );
+			break;
+		case 40:
+			$toFocus = $item.next().find( "a" );
+			if ( $toFocus.length === 0 ) {
+				$toFocus = $item.siblings( ":first" ).find( "a" );
+			}
+			$toFocus.trigger( setFocusEvent );
+			break;
+		case 27:
+			$itemParent = $item.closest( "td" ).children( "a" );
+			$itemParent.trigger( setFocusEvent );
+			break;
 	}
 } );
 

@@ -126,6 +126,53 @@ var componentName = "wb-tables",
 				}
 			} );
 		}
+	},
+	updatePaginationMarkup = function( $pagination, setFocusOnId ) {
+
+		var ol = document.createElement( "OL" ),
+			li = document.createElement( "LI" ),
+			paginate_buttons = $pagination.find( ".paginate_button" ),
+			navFocusOnId;
+
+		if ( $pagination.length === 0 ) {
+			return;
+		}
+
+		// Set the element to get the focus upon navigation
+		navFocusOnId = setFocusOnId || $pagination.get( 0 ).id;
+
+		// Update Pagination List
+		for ( var i = 0; i < paginate_buttons.length; i++ ) {
+			var item = li.cloneNode( true );
+			item.appendChild( paginate_buttons[ i ] );
+			ol.appendChild( item );
+		}
+
+		ol.className = "pagination mrgn-tp-0 mrgn-bttm-0";
+		$pagination.empty();
+		$pagination.append( ol );
+
+		// Update the aria-pressed properties on the pagination buttons
+		// Should be pushed upstream to DataTables
+		$pagination.find( ".paginate_button" )
+			.attr( {
+				"href": "#" + navFocusOnId
+			} )
+
+			// This is required to override the datatable.js (v1.10.13) behavior to cancel the event propagation on anchor element.
+			.on( "keypress", function( evn ) {
+				if ( evn.keyCode === 13 ) {
+					window.location = evn.target.href;
+				}
+			} )
+
+			.not( ".previous, .next" )
+			.attr( "aria-pressed", "false" )
+			.html( function( index, oldHtml ) {
+				return "<span class='wb-inv'>" + i18nText.paginate.page + " </span>" + oldHtml;
+			} )
+			.filter( ".current" )
+			.attr( "aria-pressed", "true" );
 	};
 
 // Bind the init event of the plugin
@@ -135,12 +182,11 @@ $document.on( "timerpoke.wb " + initEvent, selector, init );
 $document.on( "draw.dt", selector, function( event, settings ) {
 	var $elm = $( event.target ),
 		pagination = $elm.next( ".bottom" ).find( "div:first-child" ),
+		pagination_top = $elm.prevAll( ".top" ).find( "div.dataTables_paginate" ),
 		paginate_buttons = $elm.next( ".bottom" ).find( ".paginate_button" ),
 		pbLength = paginate_buttons.length,
 		pHasLF = pagination.find( ".last, .first" ).length === 2,
-		pHasPN = pagination.find( ".previous, .next" ).length === 2,
-		ol = document.createElement( "OL" ),
-		li = document.createElement( "LI" );
+		pHasPN = pagination.find( ".previous, .next" ).length === 2;
 
 	// Handle sorting/ordering
 	var order = $elm.dataTable( { "retrieve": true } ).api().order();
@@ -172,43 +218,15 @@ $document.on( "draw.dt", selector, function( event, settings ) {
 		)
 	) {
 		pagination.addClass( "hidden" );
+		pagination_top.addClass( "hidden" );
 	} else {
 
 		// Make sure Pagination is visible
 		pagination.removeClass( "hidden" );
+		pagination_top.removeClass( "hidden" );
 
-		// Update Pagination List
-		for ( var i = 0; i < paginate_buttons.length; i++ ) {
-			var item = li.cloneNode( true );
-			item.appendChild( paginate_buttons[ i ] );
-			ol.appendChild( item );
-		}
-
-		ol.className = "pagination mrgn-tp-0 mrgn-bttm-0";
-		pagination.empty();
-		pagination.append( ol );
-
-		// Update the aria-pressed properties on the pagination buttons
-		// Should be pushed upstream to DataTables
-		$elm.next( ".bottom" ).find( ".paginate_button" )
-			.attr( {
-				"href": "#" + $elm.get( 0 ).id
-			} )
-
-			// This is required to override the datatable.js (v1.10.13) behavior to cancel the event propagation on anchor element.
-			.on( "keypress", function( evn ) {
-				if ( evn.keyCode === 13 ) {
-					window.location = evn.target.href;
-				}
-			} )
-
-			.not( ".previous, .next" )
-			.attr( "aria-pressed", "false" )
-			.html( function( index, oldHtml ) {
-				return "<span class='wb-inv'>" + i18nText.paginate.page + " </span>" + oldHtml;
-			} )
-			.filter( ".current" )
-			.attr( "aria-pressed", "true" );
+		updatePaginationMarkup( pagination, $elm.get( 0 ).id );
+		updatePaginationMarkup( pagination_top );
 	}
 
 	// Identify that the table has been updated
@@ -393,19 +411,19 @@ $document.on( "submit", ".wb-tables-filter", function( event ) {
 
 				// Adjust regex based on advanced options
 				switch ( $aoType ) {
-				case "both":
-					$regex = "(" + $value + ").*";
-					break;
-				case "either":
-					$regex = "^(" + $value + ")$";
-					break;
-				case "and":
-					$regex = ( $value.indexOf( "|" ) > -1 ) ? "^(" + $value + "|[,\\s])(" + $value + "|[,\\s])+$" : "(" + $value + ")";
-					break;
-				case "any":
-				default:
-					$regex = "(" + $value + ")";
-					break;
+					case "both":
+						$regex = "(" + $value + ").*";
+						break;
+					case "either":
+						$regex = "^(" + $value + ")$";
+						break;
+					case "and":
+						$regex = ( $value.indexOf( "|" ) > -1 ) ? "^(" + $value + "|[,\\s])(" + $value + "|[,\\s])+$" : "(" + $value + ")";
+						break;
+					case "any":
+					default:
+						$regex = "(" + $value + ")";
+						break;
 				}
 			}
 		} else {
@@ -416,8 +434,12 @@ $document.on( "submit", ".wb-tables-filter", function( event ) {
 
 			// Verifies if regex was preset, if not preset use 'contains value' as default
 			if ( !$regex ) {
-				$value = $value.replace( /\s/g, "\\s*" );
-				$regex = "(" + $value + ")";
+				if ( $elm[ 0 ].getAttribute( "data-exact" ) ) {
+					$regex = "^" + $value + "$";
+				} else {
+					$value = $value.replace( /\s/g, "\\s*" );
+					$regex = "(" + $value + ")";
+				}
 			}
 
 			$datatable.column( $column ).search( $regex, true );

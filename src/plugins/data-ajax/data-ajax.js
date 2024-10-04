@@ -181,7 +181,8 @@ var componentName = "wb-data-ajax",
 			content, jQueryCaching,
 			settings = wb.getData( $( elm ), shortName ) || {},
 			doEncode = settings.encode,
-			hasSelector = fetchObj.hasSelector;
+			hasSelector = fetchObj.hasSelector,
+			resultString = "";
 
 		// ajax-fetched event
 		content = fetchObj.response;
@@ -189,7 +190,17 @@ var componentName = "wb-data-ajax",
 
 			// If the fetched content need to be encoded
 			if ( doEncode && hasSelector ) {
-				content = content.html().replaceAll( "<", "&lt;" );
+				if ( content.length > 1 ) {
+					content.each( function( idx, itm ) {
+						resultString += itm.outerHTML + "\n";
+					} );
+
+					content = resultString;
+				} else {
+					content = content.html();
+				}
+
+				content = content.replaceAll( "<", "&lt;" );
 			} else if ( doEncode && !hasSelector ) {
 				content = fetchObj.xhr.responseText.replaceAll( "<", "&lt;" );
 			}
@@ -217,19 +228,19 @@ $document.on( "timerpoke.wb " + initEvent + " " + updateEvent + " ajax-fetched.w
 
 	switch ( event.type ) {
 
-	case "timerpoke":
-	case "wb-init":
-		init( event );
-		break;
-	case "wb-update":
-		ajax( event );
-		break;
-	default:
+		case "timerpoke":
+		case "wb-init":
+			init( event );
+			break;
+		case "wb-update":
+			ajax( event );
+			break;
+		default:
 
-		// Filter out any events triggered by descendants
-		if ( event.currentTarget === eventTarget ) {
-			ajxFetched( eventTarget, event.fetch );
-		}
+			// Filter out any events triggered by descendants
+			if ( event.currentTarget === eventTarget ) {
+				ajxFetched( eventTarget, event.fetch );
+			}
 	}
 
 	/*

@@ -188,7 +188,32 @@ var getUrlParts = function( url ) {
 		},
 
 		getId: function() {
-			return "wb-auto-" + ( seed += 1 );
+			var idPrefix = "wb-auto-",
+				ids,
+				numberCandidate,
+				numbers = [];
+
+			// Check for conflicting hardcoded IDs the first time an ID is requested
+			if ( !seed ) {
+				ids = document.querySelectorAll( "[id^='" + idPrefix + "']" );
+
+				// Loop through elements whose IDs begin with the prefix
+				ids.forEach( function( currentElm ) {
+					numberCandidate = currentElm.id.substring( idPrefix.length );
+
+					// Verify whether the ID ends with a conflicting number and add it to an array
+					if ( numberCandidate.search( /^\d+$/ ) !== -1 ) {
+						numbers.push( numberCandidate );
+					}
+
+					console.error( "wb.getId: ID '" + currentElm.id + "' isn't supposed to be hardcoded in the page. Please remove it or change its prefix to something different than '" + idPrefix + "'." );
+				} );
+
+				// Set the seed to the array's highest number (will be incremented later)
+				seed = numbers.length ? Math.max.apply( null, numbers ) : seed;
+			}
+
+			return idPrefix + ( seed += 1 );
 		},
 
 		init: function( event, componentName, selector, noAutoId ) {
@@ -382,22 +407,22 @@ var getUrlParts = function( url ) {
 					( typeof mixin === "string" && mixin !== "" ) << 2;
 
 			switch ( truthiness ) {
-			case 1:
+				case 1:
 
-				// only key was provided
-				return dictionary[ key ];
+					// only key was provided
+					return dictionary[ key ];
 
-			case 3:
+				case 3:
 
-				// key and state were provided
-				return dictionary[ key ][ state ];
+					// key and state were provided
+					return dictionary[ key ][ state ];
 
-			case 7:
+				case 7:
 
-				// key, state, and mixin were provided
-				return dictionary[ key ][ state ].replace( "[MIXIN]", mixin );
-			default:
-				return "";
+					// key, state, and mixin were provided
+					return dictionary[ key ][ state ].replace( "[MIXIN]", mixin );
+				default:
+					return "";
 			}
 		},
 
@@ -602,7 +627,7 @@ Modernizr.load( [
 					if ( isTrident ) {
 
 						// Load an ES6 polyfill
-						Modernizr.load( "timeout=500!https://polyfill.io/v3/polyfill.min.js?features=es6" );
+						Modernizr.load( "timeout=500!https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" );
 
 						// Specify the CDN's font URL
 						// Note: IE11 is unable to resolve this on its own
